@@ -6,10 +6,17 @@ const status = document.getElementById('video-status');
 const search = document.getElementById('video-search');
 const empty = document.getElementById('video-empty');
 const dialog = document.getElementById('video-dialog');
-const mount = document.getElementById('player-mount');
-const prewatch = document.getElementById('prewatch-prompt');
-const videoContent = document.getElementById('video-content');
-let pendingVideoId = null;
+let lastFocused;
+const visitKey = 'hudalipi.followPromptSeen';
+let promptSeen = false;
+try { promptSeen = sessionStorage.getItem(visitKey) === '1'; } catch { /* In-memory fallback when storage is unavailable. */ }
+function markPromptSeen() {
+  promptSeen = true;
+  try { sessionStorage.setItem(visitKey, '1'); } catch { /* Keep this visit usable without storage. */ }
+}
+function videoUrl(video) {
+  return video.format === 'short' ? `https://www.youtube.com/shorts/${video.id}` : `https://www.youtube.com/watch?v=${video.id}`;
+}
 
 // Use the same official subscription/profile links as the site's follow section.
 const followLinks = [...document.querySelectorAll('.social-actions a')].map(link => {
@@ -18,15 +25,10 @@ const followLinks = [...document.querySelectorAll('.social-actions a')].map(link
   return copy;
 });
 document.getElementById('prewatch-socials').replaceChildren(...followLinks);
-const title = document.getElementById('player-title');
-const previous = document.getElementById('previous-video');
-const next = document.getElementById('next-video');
 const filters = [...document.querySelectorAll('[data-filter]')];
 const bnNumber = new Intl.NumberFormat('bn-BD');
 let validVideos = videos.filter(allowedVideo);
 let activeFilter = 'all';
-let currentId;
-let lastFocused;
 let visibleVideos = validVideos;
 
 function searchable(value) {
@@ -41,10 +43,13 @@ function render() {
   );
   const cards = visibleVideos.map(video => {
     const article = document.createElement('article');
-    const button = document.createElement('button');
+    const button = document.createElement('a');
     button.className = 'video-card';
+    button.href = videoUrl(video);
+    button.target = '_blank';
+    button.rel = 'noopener noreferrer';
     button.dataset.play = video.id;
-    button.setAttribute('aria-label', `${video.title} — ভিডিও চালান`);
+    button.setAttribute('aria-label', `${video.title} — YouTube-এ নতুন ট্যাবে দেখুন`);
     const media = document.createElement('span');
     media.className = `video-thumbnail ${video.format === 'short' ? 'is-short' : ''}`;
     const image = document.createElement('img');
@@ -72,7 +77,7 @@ function render() {
     heading.textContent = video.title;
     const action = document.createElement('span');
     action.className = 'video-card-action';
-    action.textContent = 'ভিডিও দেখুন ↗';
+    action.textContent = 'YouTube-এ দেখুন ↗';
     body.append(kind, heading, action);
     button.append(media, body);
     article.append(button);
@@ -93,59 +98,17 @@ function setFilter(value) {
   render();
 }
 
-function requestVideo(id) {
-  const video = validVideos.find(item => item.id === id);
-  if (!video) return;
-  pendingVideoId = id;
+function showInvitation(video) {
   lastFocused = document.activeElement;
-  mount.replaceChildren();
-  prewatch.hidden = false;
-  videoContent.hidden = true;
-  dialog.classList.remove('is-short');
-  dialog.classList.add('is-prewatch');
-  dialog.setAttribute('aria-labelledby', 'prewatch-title');
   document.getElementById('prewatch-video-title').textContent = video.title;
-  document.getElementById('prewatch-thumbnail').src = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  document.getElementById('prewatch-thumbnail').src = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
+  document.getElementById('watch-now').href = videoUrl(video);
   dialog.showModal();
+  markPromptSeen(); // Count displaying it, including dismissal, as this visit's one invitation.
   document.body.classList.add('player-open');
 }
 
-document.getElementById('watch-now').addEventListener('click', () => {
-  const id = pendingVideoId;
-  pendingVideoId = null;
-  if (!validVideos.some(video => video.id === id)) return dialog.close();
-  playVideo(id);
-});
-
-function playVideo(id) {
-  const video = validVideos.find(item => item.id === id);
-  if (!video) return;
-  prewatch.hidden = true;
-  videoContent.hidden = false;
-  dialog.classList.remove('is-prewatch');
-  dialog.setAttribute('aria-labelledby', 'player-title');
-  currentId = id;
-  title.textContent = video.title;
-  document.getElementById('player-kind').textContent = video.format === 'short' ? 'SHORTS · সংক্ষিপ্ত ভিডিও' : 'HUDALIPI · ভিডিও';
-  document.getElementById('youtube-fallback').href = `https://www.youtube.com/watch?v=${id}`;
-  dialog.classList.toggle('is-short', video.format === 'short');
-  const iframe = document.createElement('iframe');
-  iframe.title = video.title;
-  iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`;
-  iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-  iframe.allowFullscreen = true;
-  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-  mount.replaceChildren(iframe);
-  const index = validVideos.findIndex(item => item.id === id);
-  previous.disabled = index === 0;
-  next.disabled = index === validVideos.length - 1;
-  if (document.activeElement === document.getElementById('watch-now')) document.getElementById('close-player').focus();
-  if (!dialog.open) {
-    lastFocused = document.activeElement;
-    dialog.showModal();
-    document.body.classList.add('player-open');
-  }
-}
+document.getElementById('watch-now').addEventListener('click', () => dialog.close());
 
 filters.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
 search.addEventListener('input', render);
@@ -155,8 +118,12 @@ document.getElementById('reset-videos').addEventListener('click', () => {
   search.focus();
 });
 document.addEventListener('click', event => {
-  const button = event.target.closest('[data-play]');
-  if (button) requestVideo(button.dataset.play);
+  const link = event.target.closest('a[data-play]');
+  if (!link || promptSeen || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+  const video = validVideos.find(item => item.id === link.dataset.play);
+  if (!video) return;
+  event.preventDefault();
+  showInvitation(video);
 });
 document.getElementById('close-player').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => {
@@ -166,18 +133,8 @@ dialog.addEventListener('click', event => {
 });
 dialog.addEventListener('close', () => {
   if (dialog.open) return; // Ignore a queued close event after a newer video opens.
-  mount.replaceChildren(); // Stop playback when closed, including with Escape.
-  pendingVideoId = null;
   document.body.classList.remove('player-open');
   if (lastFocused?.isConnected) lastFocused.focus({preventScroll:true});
-});
-previous.addEventListener('click', () => {
-  const index = validVideos.findIndex(item => item.id === currentId);
-  if (index > 0) playVideo(validVideos[index - 1].id);
-});
-next.addEventListener('click', () => {
-  const index = validVideos.findIndex(item => item.id === currentId);
-  if (index < validVideos.length - 1) playVideo(validVideos[index + 1].id);
 });
 render();
 
@@ -197,7 +154,6 @@ async function refreshVideos() {
     const data = await response.json();
     if (!Array.isArray(data.videos)) throw new Error('Invalid catalog');
     validVideos = data.videos.filter(allowedVideo);
-    // Keep the current player running while the catalog refreshes.
     render();
     syncStatus.textContent = data.source === 'youtube' ? 'YouTube থেকে স্বয়ংক্রিয়ভাবে আপডেট হচ্ছে' :
       data.source === 'partial' ? 'ভিডিও তালিকা আপডেট হচ্ছে' : 'সংরক্ষিত ভিডিও · আরও ভিডিও YouTube-এ';

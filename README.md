@@ -18,11 +18,13 @@ Open http://127.0.0.1:5173. This serves both the static page and `/api/videos`.
 
 `lib/youtube.js` supports current and older YouTube public-page renderers. If YouTube is unavailable, the allowed saved catalog remains available; the UI identifies that saved state. This uses public page data rather than the authenticated YouTube Data API, so future YouTube markup changes may require a parser update. Only publicly listed uploads can be discovered. Upload processing/listing delays are controlled by YouTube.
 
-`dist/video-policy.js` holds site-only exclusions, enforced both on the server and in the browser. `SZ15Bb2leLo` is excluded from live responses, saved data, search, cards, and player navigation. Nothing is removed from the YouTube channel.
+`dist/video-policy.js` holds site-only exclusions, enforced both on the server and in the browser. `SZ15Bb2leLo` is excluded from live responses, saved data, search and video links. Nothing is removed from the YouTube channel.
 
 `dist/video-catalog.js` is an offline fallback, not the primary live source. Four allowed public uploads are retained there.
 
-Playback uses YouTube's privacy-enhanced embed domain. The player is created only when chosen and removed when closed. Subscribe opens the channel's subscription confirmation URL; Facebook/TikTok Follow buttons open the supplied official profiles. The viewer completes subscription/follow on the platform while logged in; the website does not claim or silently perform that action.
+Videos open directly on YouTube in a new tab; no embedded player, iframe, or on-site playback is created. Native links support keyboard, modified clicks and the browser's standard new-tab controls. The initial optional follow invitation appears once per tab visit using sessionStorage, including across reloads; displaying or dismissing it counts as seen. When storage is unavailable, an in-memory flag still avoids repeats on the open page. A new browser tab/session can receive a fresh invitation.
+
+Subscribe opens the channel's subscription confirmation URL; Facebook/TikTok Follow buttons open the supplied official profiles. These remain optional, with an immediate YouTube watch link in the invitation.
 
 ## Validation
 
@@ -30,10 +32,10 @@ Run `npm test` for automatic-new-upload, exclusion, upstream failure, partial so
 
 ## Files
 
-- `dist/index.html` — Bengali content, featured video, library and player dialog
+- `dist/index.html` — Bengali content, featured video, library and optional follow dialog
 - `dist/style.css` — responsive brand and video layouts
 - `dist/app.js` — topic selection and accessible mobile navigation
-- `dist/videos.js` — search, filters, lazy player, previous/next and playback cleanup
+- `dist/videos.js` — search, filters, once-per-visit invitation and direct YouTube links
 - `dist/video-catalog.js` — allowed fallback videos
 - `dist/video-policy.js` — exclusions shared by client and server
 - `api/videos.js`, `lib/youtube.js` — live YouTube listing endpoint
@@ -50,6 +52,6 @@ The GitHub repository is connected to the existing Vercel deployment. Its static
 - Facebook: https://www.facebook.com/profile.php?id=61596143356410
 - TikTok: https://www.tiktok.com/@hudalipi
 
-## Optional pre-play invitation
+## Optional follow invitation
 
-Choosing a library or featured video first opens a dismissible Subscribe/Follow invitation. Its official outbound links do not claim to verify subscription or follow status. “এখনই ভিডিও দেখুন” starts the selected video immediately, with no waiting period or social action required. No player iframe is loaded before this choice. Escape, the close button and backdrop dismiss the invitation; normal previous/next navigation inside the player remains uninterrupted.
+Choosing a featured video or library item first opens the invitation once per visit. “এখনই ভিডিও দেখুন” links directly to the selected YouTube video or Shorts. No waiting period, social action or subscription verification is required. Later video selections open YouTube directly. The close button, Escape and backdrop dismiss the invitation and restore focus.
