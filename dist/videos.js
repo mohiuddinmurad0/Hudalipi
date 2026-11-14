@@ -1,5 +1,5 @@
 import { videos } from './video-catalog.js';
-import { allowedVideo, latestPublishedVideo, newestFirst } from './video-policy.js';
+import { allowedVideo, newestFirst } from './video-policy.js';
 import { configureYouTubeLink } from './youtube-links.js';
 
 const grid = document.getElementById('video-grid');
@@ -28,31 +28,17 @@ const followLinks = [...document.querySelectorAll('.social-actions a')].map(link
 document.getElementById('prewatch-socials').replaceChildren(...followLinks);
 const filters = [...document.querySelectorAll('[data-filter]')];
 const bnNumber = new Intl.NumberFormat('bn-BD');
+let language = document.documentElement.lang || 'bn';
+const words = {bn:{all:'সব ভিডিও',video:'ভিডিও',short:'Shorts',search:'সূরা বা ভিডিও খুঁজুন…',loading:'ভিডিওগুলো লোড হচ্ছে…',syncing:'নতুন ভিডিও খোঁজা হচ্ছে…',notFound:'এই নামে কোনো ভিডিও পাওয়া যায়নি',tryAnother:'অন্য কোনো নাম দিয়ে খুঁজুন অথবা সব ভিডিও দেখুন।',showAll:'সব ভিডিও দেখুন',more:'আরও ভিডিও দেখুন',found:' পাওয়া গেছে',ordered:' · নতুন থেকে পুরোনো',showing:'টির মধ্যে ',unit:'টি',videos:'টি ভিডিও',kindQuran:'কুরআন তিলাওয়াত',kindPrayer:'নামাজ শিক্ষা',youtube:'YouTube-এ দেখুন ↗',source:'YouTube থেকে স্বয়ংক্রিয়ভাবে আপডেট হচ্ছে',partial:'ভিডিও তালিকা আপডেট হচ্ছে',saved:'সংরক্ষিত ভিডিও · আরও ভিডিও YouTube-এ',published:'প্রকাশিত: ',latest:'সর্বশেষ ভিডিওটি YouTube-এ দেখুন।'},en:{all:'All videos',video:'Videos',short:'Shorts',search:'Search by surah or video…',loading:'Loading videos…',syncing:'Checking for new videos…',notFound:'No videos found for this search',tryAnother:'Try another search or browse all videos.',showAll:'Show all videos',more:'Load more videos',found:' found',ordered:' · newest first',showing:' of ',unit:'',videos:' videos',kindQuran:'Quran recitation',kindPrayer:'Prayer lessons',youtube:'Watch on YouTube ↗',source:'Automatically updated from YouTube',partial:'Updating the video list',saved:'Saved videos · more on YouTube',published:'Published: ',latest:'Watch the latest video on YouTube.'}};
+function t(key){return words[language]?.[key] || words.bn[key]}
+function updateLanguage(){language=document.documentElement.lang || 'bn'; filters.forEach(button=>button.textContent=button.dataset.filter==='all'?t('all'):button.dataset.filter==='video'?t('video'):t('short')); search.placeholder=t('search'); document.querySelector('.sr-only[for=video-search]').textContent=t('search'); loadMore.innerHTML=`${t('more')} <span aria-hidden="true">↓</span>`; document.querySelector('#video-empty h3').textContent=t('notFound'); document.querySelector('#video-empty p').textContent=t('tryAnother'); document.querySelector('#reset-videos').textContent=t('showAll'); document.getElementById('video-sync-status').textContent=t('syncing'); render()}
+document.addEventListener('hudalipi:language', () => { updateLanguage();
+  const labels = language==='en' ? ['Subscribe on YouTube','Follow on Facebook','Follow on TikTok'] : ['YouTube সাবস্ক্রাইব','Facebook ফলো করুন','TikTok ফলো করুন'];
+  document.querySelectorAll('#prewatch-socials .prewatch-social').forEach((link,index)=>{const text=link.querySelector('span:nth-of-type(1)');if(text)text.textContent=labels[index]||'';});
+});
 let validVideos = newestFirst(videos);
 let activeFilter = 'all';
 let visibleVideos = validVideos;
-
-function updateHero(video) {
-  if (!video || !allowedVideo(video)) return;
-  const feature = document.querySelector('.hero-feature');
-  const image = feature.querySelector('.feature-play img');
-  image.src = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
-  image.alt = `${video.title} — থাম্বনেইল`;
-  feature.querySelector('.feature-heading').innerHTML = '<span class="feature-dot" aria-hidden="true"></span> সর্বশেষ প্রকাশিত <span>NEW UPLOAD</span>';
-  feature.querySelector('.feature-copy h2').textContent = video.title.split('|')[0].trim();
-  feature.querySelector('.feature-copy > span').textContent = video.format === 'short' ? 'SHORTS · নতুন ভিডিও' : 'নতুন ভিডিও';
-  const published = video.publishedAt;
-  feature.querySelector('.feature-copy p').textContent = Number.isFinite(Date.parse(published))
-    ? `প্রকাশিত: ${new Intl.DateTimeFormat('bn-BD', {day:'numeric', month:'long', year:'numeric', timeZone:'Asia/Dhaka'}).format(new Date(published))}`
-    : 'সর্বশেষ ভিডিওটি YouTube-এ দেখুন।';
-  feature.querySelector('.feature-duration').textContent = video.format === 'short' ? 'Shorts' : (video.duration || 'ভিডিও');
-  feature.querySelector('.feature-play').classList.toggle('is-short', video.format === 'short');
-  for (const link of feature.querySelectorAll('a[data-play]')) {
-    link.dataset.play = video.id;
-    link.setAttribute('aria-label', `${video.title} — YouTube-এ দেখুন`);
-    configureYouTubeLink(link, video);
-  }
-}
 
 function searchable(value) {
   return value.normalize('NFKC').toLocaleLowerCase().replace(/[\u200c\u200d]/g, '').replace(/[^\p{L}\p{N}]/gu, '');
@@ -71,7 +57,7 @@ function render({ focusNew = false } = {}) {
     button.className = 'video-card';
     configureYouTubeLink(button, video);
     button.dataset.play = video.id;
-    button.setAttribute('aria-label', `${video.title} — YouTube-এ দেখুন`);
+    button.setAttribute('aria-label', `${video.title} — ${t('youtube')}`);
     const media = document.createElement('span');
     media.className = `video-thumbnail ${video.format === 'short' ? 'is-short' : ''}`;
     const image = document.createElement('img');
@@ -88,18 +74,18 @@ function render({ focusNew = false } = {}) {
     play.setAttribute('aria-hidden', 'true');
     const badge = document.createElement('span');
     badge.className = 'video-badge';
-    badge.textContent = video.format === 'short' ? 'Shorts' : (video.duration || 'ভিডিও');
+    badge.textContent = video.format === 'short' ? 'Shorts' : (video.duration || t('video'));
     media.append(image, play, badge);
     const body = document.createElement('span');
     body.className = 'video-card-body';
     const kind = document.createElement('span');
     kind.className = 'video-kind';
-    kind.textContent = /সূরা|surah/i.test(video.title) ? 'কুরআন তিলাওয়াত' : /নামাজ|সালাত|salah|namaz/i.test(video.title) ? 'নামাজ শিক্ষা' : 'Hudalipi';
+    kind.textContent = /সূরা|surah/i.test(video.title) ? t('kindQuran') : /নামাজ|সালাত|salah|namaz/i.test(video.title) ? t('kindPrayer') : 'Hudalipi';
     const heading = document.createElement('strong');
     heading.textContent = video.title;
     const action = document.createElement('span');
     action.className = 'video-card-action';
-    action.textContent = 'YouTube-এ দেখুন ↗';
+    action.textContent = t('youtube');
     body.append(kind, heading, action);
     button.append(media, body);
     article.append(button);
@@ -107,10 +93,10 @@ function render({ focusNew = false } = {}) {
   });
   grid.replaceChildren(...cards);
   empty.hidden = cards.length !== 0;
-  status.textContent = `${bnNumber.format(visibleVideos.length)}টি ভিডিও${query ? ' পাওয়া গেছে' : ' · নতুন থেকে পুরোনো'}`;
+  status.textContent = language === 'bn' ? `${bnNumber.format(visibleVideos.length)}${t('videos')}${query ? t('found') : t('ordered')}` : `${visibleVideos.length}${t('videos')}${query ? t('found') : t('ordered')}`;
   moreControls.hidden = visibleVideos.length <= pageSize;
   loadMore.hidden = cards.length >= visibleVideos.length;
-  document.getElementById('video-progress').textContent = `${bnNumber.format(visibleVideos.length)}টির মধ্যে ${bnNumber.format(cards.length)}টি দেখানো হচ্ছে`;
+  document.getElementById('video-progress').textContent = language === 'bn' ? `${bnNumber.format(visibleVideos.length)}${t('showing')}${bnNumber.format(cards.length)}টি দেখানো হচ্ছে` : `${cards.length}${t('showing')}${visibleVideos.length} shown`;
   if (focusNew) grid.children[previouslyShown]?.querySelector('a')?.focus({preventScroll:true});
 }
 
@@ -175,9 +161,7 @@ for (const link of document.querySelectorAll('a[data-play]')) {
   const video = validVideos.find(item => item.id === link.dataset.play);
   if (video) configureYouTubeLink(link, video);
 }
-render();
-updateHero(latestPublishedVideo(validVideos));
-
+updateLanguage();
 
 // Vercel caches the public channel response for five minutes. The local catalog
 // remains usable when the connection or YouTube is temporarily unavailable.
@@ -194,13 +178,12 @@ async function refreshVideos() {
     const data = await response.json();
     if (!Array.isArray(data.videos)) throw new Error('Invalid catalog');
     validVideos = newestFirst(data.videos);
-    updateHero(validVideos.find(video => video.id === data.featuredVideoId));
     render();
-    syncStatus.textContent = data.source === 'youtube' ? 'YouTube থেকে স্বয়ংক্রিয়ভাবে আপডেট হচ্ছে' :
-      data.source === 'partial' ? 'ভিডিও তালিকা আপডেট হচ্ছে' : 'সংরক্ষিত ভিডিও · আরও ভিডিও YouTube-এ';
+    syncStatus.textContent = data.source === 'youtube' ? t('source') :
+      data.source === 'partial' ? t('partial') : t('saved');
     syncStatus.classList.toggle('is-saved', data.source === 'saved');
   } catch {
-    syncStatus.textContent = 'সংরক্ষিত ভিডিও · আরও ভিডিও YouTube-এ';
+    syncStatus.textContent = t('saved');
     syncStatus.classList.add('is-saved');
   } finally {
     refreshing = false;
