@@ -65,3 +65,7 @@ Routing tests cover Android intent and fallback URLs for videos and Shorts, iPho
 ## Latest upload in the hero
 
 The live endpoint compares the newest public Videos and Shorts candidates using their actual YouTube `publishDate` timestamps, validates the source channel and video IDs, and returns `featuredVideoId`. The hero updates its image, title, format/duration, publication date and app-aware watch links whenever that response refreshes. Excluded videos cannot become featured. Unknown publication dates do not cause a guessed cross-format ranking; the last verified fallback stays visible. Publication-date requests have bounded timeouts and share the endpoint's five-minute cache.
+
+## Newest-first library order
+
+Both the endpoint and browser sort all allowed catalog items by their actual YouTube publication timestamps, newest first, across normal videos and Shorts. Format filters and search preserve that order. Metadata requests run with a six-request concurrency limit and a shared twelve-second deadline. Saved dates are used during temporary upstream failures; undated items retain stable order after dated items. The offline catalog is also stored with verified publication timestamps and sorted newest first.

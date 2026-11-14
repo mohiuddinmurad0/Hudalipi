@@ -6,7 +6,14 @@ export function allowedVideo(video) {
     ['video', 'short'].includes(video.format);
 }
 
+export function newestFirst(videos) {
+  const timestamp = video => Number.isFinite(Date.parse(video.publishedAt)) ? Date.parse(video.publishedAt) : -Infinity;
+  return videos.filter(allowedVideo).slice().sort((a, b) => {
+    const left = timestamp(a), right = timestamp(b);
+    return left === right ? 0 : right > left ? 1 : -1;
+  });
+}
+
 export function latestPublishedVideo(videos) {
-  return videos.filter(allowedVideo).filter(video => Number.isFinite(Date.parse(video.publishedAt)))
-    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))[0];
+  return newestFirst(videos).find(video => Number.isFinite(Date.parse(video.publishedAt)));
 }

@@ -74,3 +74,33 @@ test('Hero chooses a newer landscape upload and does not guess when dates are un
  const unknown=await featureLatest(candidates,async()=>{throw new Error('Unavailable');});
  assert.equal(unknown.featuredVideoId,null);
 });
+
+test('Mixed uploads are dated and sorted newest-first, including items beyond each format’s first entry',async()=>{
+ const {featureLatest}=await import('../lib/youtube.js');
+ const items=[
+  {id:'NEWvideo123',title:'Latest landscape',format:'video'},
+  {id:'OLDvideo123',title:'Older landscape',format:'video'},
+  {id:'NEWshort123',title:'Latest Short',format:'short'},
+  {id:'OLDshort123',title:'Older Short',format:'short'}
+ ];
+ const dates={NEWvideo123:'2026-11-13T20:00:00Z',OLDvideo123:'2026-11-11T20:00:00Z',NEWshort123:'2026-11-14T20:00:00Z',OLDshort123:'2026-11-12T20:00:00Z'};
+ const result=await featureLatest(items,async url=>{
+  const id=new URL(url).searchParams.get('v');
+  return {ok:true,text:async()=>'<script>var ytInitialPlayerResponse = '+JSON.stringify({videoDetails:{videoId:id,channelId},microformat:{playerMicroformatRenderer:{publishDate:dates[id]}}})+';</script>'};
+ });
+ assert.deepEqual(result.videos.map(v=>v.id),['NEWshort123','NEWvideo123','OLDshort123','OLDvideo123']);
+ assert.equal(result.featuredVideoId,'NEWshort123');
+ assert.deepEqual(items.map(v=>v.id),['NEWvideo123','OLDvideo123','NEWshort123','OLDshort123']);
+});
+
+test('Newest-first ordering handles time zones, ties, unknown dates and site exclusions',async()=>{
+ const {newestFirst}=await import('../dist/video-policy.js');
+ const input=[
+  {id:'NEWvideo123',title:'Older',format:'video',publishedAt:'2026-11-14T10:00:00+06:00'},
+  {id:'NEWshort123',title:'Newer',format:'short',publishedAt:'2026-11-14T05:00:00Z'},
+  {id:'OLDshort123',title:'Same time',format:'short',publishedAt:'2026-11-14T05:00:00Z'},
+  {id:'OLDvideo123',title:'Unknown',format:'video'},
+  {id:'SZ15Bb2leLo',title:'Excluded',format:'video',publishedAt:'2027-01-01T00:00:00Z'}
+ ];
+ assert.deepEqual(newestFirst(input).map(v=>v.id),['NEWshort123','OLDshort123','NEWvideo123','OLDvideo123']);
+});

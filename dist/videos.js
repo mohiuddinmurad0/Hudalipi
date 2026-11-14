@@ -1,5 +1,5 @@
 import { videos } from './video-catalog.js';
-import { allowedVideo, latestPublishedVideo } from './video-policy.js';
+import { allowedVideo, latestPublishedVideo, newestFirst } from './video-policy.js';
 import { configureYouTubeLink } from './youtube-links.js';
 
 const grid = document.getElementById('video-grid');
@@ -24,7 +24,7 @@ const followLinks = [...document.querySelectorAll('.social-actions a')].map(link
 document.getElementById('prewatch-socials').replaceChildren(...followLinks);
 const filters = [...document.querySelectorAll('[data-filter]')];
 const bnNumber = new Intl.NumberFormat('bn-BD');
-let validVideos = videos.filter(allowedVideo);
+let validVideos = newestFirst(videos);
 let activeFilter = 'all';
 let visibleVideos = validVideos;
 
@@ -102,7 +102,7 @@ function render() {
   });
   grid.replaceChildren(...cards);
   empty.hidden = cards.length !== 0;
-  status.textContent = `${bnNumber.format(cards.length)}টি ভিডিও${query ? ' পাওয়া গেছে' : ' · আপনার পছন্দটি বেছে নিন'}`;
+  status.textContent = `${bnNumber.format(cards.length)}টি ভিডিও${query ? ' পাওয়া গেছে' : ' · নতুন থেকে পুরোনো'}`;
 }
 
 function setFilter(value) {
@@ -176,7 +176,7 @@ async function refreshVideos() {
     if (!response.ok) throw new Error('Unavailable');
     const data = await response.json();
     if (!Array.isArray(data.videos)) throw new Error('Invalid catalog');
-    validVideos = data.videos.filter(allowedVideo);
+    validVideos = newestFirst(data.videos);
     updateHero(validVideos.find(video => video.id === data.featuredVideoId));
     render();
     syncStatus.textContent = data.source === 'youtube' ? 'YouTube থেকে স্বয়ংক্রিয়ভাবে আপডেট হচ্ছে' :
