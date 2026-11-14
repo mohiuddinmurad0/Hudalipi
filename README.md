@@ -49,3 +49,7 @@ The GitHub repository is connected to the existing Vercel deployment. Its static
 - YouTube: https://www.youtube.com/channel/UC7un7g0eyf21XUKVgOt6-6g
 - Facebook: https://www.facebook.com/profile.php?id=61596143356410
 - TikTok: https://www.tiktok.com/@hudalipi
+
+## Optional pre-play invitation
+
+Choosing a library or featured video first opens a dismissible Subscribe/Follow invitation. Its official outbound links do not claim to verify subscription or follow status. “এখনই ভিডিও দেখুন” starts the selected video immediately, with no waiting period or social action required. No player iframe is loaded before this choice. Escape, the close button and backdrop dismiss the invitation; normal previous/next navigation inside the player remains uninterrupted.

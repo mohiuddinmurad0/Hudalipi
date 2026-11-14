@@ -7,6 +7,17 @@ const search = document.getElementById('video-search');
 const empty = document.getElementById('video-empty');
 const dialog = document.getElementById('video-dialog');
 const mount = document.getElementById('player-mount');
+const prewatch = document.getElementById('prewatch-prompt');
+const videoContent = document.getElementById('video-content');
+let pendingVideoId = null;
+
+// Use the same official subscription/profile links as the site's follow section.
+const followLinks = [...document.querySelectorAll('.social-actions a')].map(link => {
+  const copy = link.cloneNode(true);
+  copy.className = 'prewatch-social';
+  return copy;
+});
+document.getElementById('prewatch-socials').replaceChildren(...followLinks);
 const title = document.getElementById('player-title');
 const previous = document.getElementById('previous-video');
 const next = document.getElementById('next-video');
@@ -82,9 +93,37 @@ function setFilter(value) {
   render();
 }
 
+function requestVideo(id) {
+  const video = validVideos.find(item => item.id === id);
+  if (!video) return;
+  pendingVideoId = id;
+  lastFocused = document.activeElement;
+  mount.replaceChildren();
+  prewatch.hidden = false;
+  videoContent.hidden = true;
+  dialog.classList.remove('is-short');
+  dialog.classList.add('is-prewatch');
+  dialog.setAttribute('aria-labelledby', 'prewatch-title');
+  document.getElementById('prewatch-video-title').textContent = video.title;
+  document.getElementById('prewatch-thumbnail').src = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  dialog.showModal();
+  document.body.classList.add('player-open');
+}
+
+document.getElementById('watch-now').addEventListener('click', () => {
+  const id = pendingVideoId;
+  pendingVideoId = null;
+  if (!validVideos.some(video => video.id === id)) return dialog.close();
+  playVideo(id);
+});
+
 function playVideo(id) {
   const video = validVideos.find(item => item.id === id);
   if (!video) return;
+  prewatch.hidden = true;
+  videoContent.hidden = false;
+  dialog.classList.remove('is-prewatch');
+  dialog.setAttribute('aria-labelledby', 'player-title');
   currentId = id;
   title.textContent = video.title;
   document.getElementById('player-kind').textContent = video.format === 'short' ? 'SHORTS · সংক্ষিপ্ত ভিডিও' : 'HUDALIPI · ভিডিও';
@@ -100,6 +139,7 @@ function playVideo(id) {
   const index = validVideos.findIndex(item => item.id === id);
   previous.disabled = index === 0;
   next.disabled = index === validVideos.length - 1;
+  if (document.activeElement === document.getElementById('watch-now')) document.getElementById('close-player').focus();
   if (!dialog.open) {
     lastFocused = document.activeElement;
     dialog.showModal();
@@ -116,7 +156,7 @@ document.getElementById('reset-videos').addEventListener('click', () => {
 });
 document.addEventListener('click', event => {
   const button = event.target.closest('[data-play]');
-  if (button) playVideo(button.dataset.play);
+  if (button) requestVideo(button.dataset.play);
 });
 document.getElementById('close-player').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => {
@@ -125,7 +165,9 @@ dialog.addEventListener('click', event => {
   if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
 });
 dialog.addEventListener('close', () => {
+  if (dialog.open) return; // Ignore a queued close event after a newer video opens.
   mount.replaceChildren(); // Stop playback when closed, including with Escape.
+  pendingVideoId = null;
   document.body.classList.remove('player-open');
   if (lastFocused?.isConnected) lastFocused.focus({preventScroll:true});
 });
