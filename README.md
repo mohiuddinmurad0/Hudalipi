@@ -24,3 +24,7 @@ Channel: https://www.youtube.com/@hudalipi
 
 # Hudalipi
 # Hudalipi
+
+Social profiles:
+- Facebook: https://www.facebook.com/profile.php?id=61596143356410
+- TikTok: https://www.tiktok.com/@hudalipi
