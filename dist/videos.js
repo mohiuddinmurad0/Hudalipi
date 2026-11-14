@@ -1,4 +1,5 @@
 import { videos } from './video-catalog.js';
+import { allowedVideo } from './video-policy.js';
 
 const grid = document.getElementById('video-grid');
 const status = document.getElementById('video-status');
@@ -11,7 +12,7 @@ const previous = document.getElementById('previous-video');
 const next = document.getElementById('next-video');
 const filters = [...document.querySelectorAll('[data-filter]')];
 const bnNumber = new Intl.NumberFormat('bn-BD');
-const validVideos = videos.filter(v => /^[\w-]{11}$/.test(v.id));
+let validVideos = videos.filter(allowedVideo);
 let activeFilter = 'all';
 let currentId;
 let lastFocused;
@@ -55,7 +56,7 @@ function render() {
     body.className = 'video-card-body';
     const kind = document.createElement('span');
     kind.className = 'video-kind';
-    kind.textContent = /সূরা|surah/i.test(video.title) ? 'কুরআন তিলাওয়াত' : 'শিক্ষামূলক গল্প';
+    kind.textContent = /সূরা|surah/i.test(video.title) ? 'কুরআন তিলাওয়াত' : /নামাজ|সালাত|salah|namaz/i.test(video.title) ? 'নামাজ শিক্ষা' : 'Hudalipi';
     const heading = document.createElement('strong');
     heading.textContent = video.title;
     const action = document.createElement('span');
@@ -137,3 +138,37 @@ next.addEventListener('click', () => {
   if (index < validVideos.length - 1) playVideo(validVideos[index + 1].id);
 });
 render();
+
+
+// Vercel caches the public channel response for five minutes. The local catalog
+// remains usable when the connection or YouTube is temporarily unavailable.
+let refreshing = false;
+let lastAttempt = 0;
+async function refreshVideos() {
+  if (refreshing || document.hidden || Date.now() - lastAttempt < 60000) return;
+  refreshing = true;
+  lastAttempt = Date.now();
+  const syncStatus = document.getElementById('video-sync-status');
+  try {
+    const response = await fetch('/api/videos', {signal: AbortSignal.timeout(12000)});
+    if (!response.ok) throw new Error('Unavailable');
+    const data = await response.json();
+    if (!Array.isArray(data.videos)) throw new Error('Invalid catalog');
+    validVideos = data.videos.filter(allowedVideo);
+    // Keep the current player running while the catalog refreshes.
+    render();
+    syncStatus.textContent = data.source === 'youtube' ? 'YouTube থেকে স্বয়ংক্রিয়ভাবে আপডেট হচ্ছে' :
+      data.source === 'partial' ? 'ভিডিও তালিকা আপডেট হচ্ছে' : 'সংরক্ষিত ভিডিও · আরও ভিডিও YouTube-এ';
+    syncStatus.classList.toggle('is-saved', data.source === 'saved');
+  } catch {
+    syncStatus.textContent = 'সংরক্ষিত ভিডিও · আরও ভিডিও YouTube-এ';
+    syncStatus.classList.add('is-saved');
+  } finally {
+    refreshing = false;
+  }
+}
+refreshVideos();
+setInterval(refreshVideos, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Date.now() - lastAttempt >= 5 * 60 * 1000) refreshVideos();
+});

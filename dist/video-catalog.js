@@ -1,16 +1,10 @@
-// Public uploads verified from the channel on 2026-11-14.
+// Offline fallback; live uploads are loaded from /api/videos.
 export const videos = [
   {
     "id": "2vePBCwxYo8",
     "title": "সূরা আল-মুলক সম্পূর্ণ | আরবি ও বাংলা অর্থসহ | Surah Al-Mulk | Hudalipi",
     "format": "video",
     "duration": "8:21"
-  },
-  {
-    "id": "SZ15Bb2leLo",
-    "title": "🥔 সততার দাম | শেষ পর্যন্ত সত্যের জয়! 😱 | শিক্ষামূলক বাংলা গল্প",
-    "format": "video",
-    "duration": "2:01"
   },
   {
     "id": "EzDW_gOlnCc",

@@ -4,21 +4,29 @@ A responsive Bengali website for Hudalipi, with an on-site YouTube video library
 
 ## Local preview
 
-No dependencies or build step are required:
+Node.js 22 or later; no dependencies or API keys are required:
 
 ```sh
-python3 -m http.server 5173 --directory dist
+npm run dev
 ```
 
-Open http://localhost:5173. Serve over HTTP rather than opening the HTML as a file, because the video library uses JavaScript modules.
+Open http://127.0.0.1:5173. This serves both the static page and `/api/videos`.
 
-## Video library
+## Automatic YouTube uploads
 
-`dist/video-catalog.js` contains public videos verified from the channel on 2026-11-14. Each item has a YouTube `id`, the actual `title`, `format` (`video` or `short`), and an optional `duration`. Add newly published videos to this file to update the library; no YouTube API key is required. The catalog currently includes the five publicly listed videos/Shorts.
+`api/videos.js` is a read-only Vercel function. On visits it fetches the channel's public Videos and Shorts tabs, validates the channel identity, and returns current listings. Vercel caches successful responses for five minutes. The open page checks again every five minutes while visible and refreshes on return to the tab. No rebuild or manual catalog edit is required for new public uploads.
 
-Playback uses YouTube's privacy-enhanced embed domain. The player is created only when a visitor chooses a video and is removed when closed. The native dialog supports keyboard focus containment and Escape; search and format filters include an empty state. An external YouTube link remains available if playback is restricted by YouTube or the viewer's browser.
+`lib/youtube.js` supports current and older YouTube public-page renderers. If YouTube is unavailable, the allowed saved catalog remains available; the UI identifies that saved state. This uses public page data rather than the authenticated YouTube Data API, so future YouTube markup changes may require a parser update. Only publicly listed uploads can be discovered. Upload processing/listing delays are controlled by YouTube.
 
-Channel links use the verified channel ID so they remain valid when the handle changes. YouTube currently reports the handle `@hudalipiofficial` for this channel.
+`dist/video-policy.js` holds site-only exclusions, enforced both on the server and in the browser. `SZ15Bb2leLo` is excluded from live responses, saved data, search, cards, and player navigation. Nothing is removed from the YouTube channel.
+
+`dist/video-catalog.js` is an offline fallback, not the primary live source. Four allowed public uploads are retained there.
+
+Playback uses YouTube's privacy-enhanced embed domain. The player is created only when chosen and removed when closed. Subscribe opens the channel's subscription confirmation URL; Facebook/TikTok Follow buttons open the supplied official profiles. The viewer completes subscription/follow on the platform while logged in; the website does not claim or silently perform that action.
+
+## Validation
+
+Run `npm test` for automatic-new-upload, exclusion, upstream failure, partial source failure, source validation, and read-only endpoint checks. Node's built-in test runner is used.
 
 ## Files
 
@@ -26,11 +34,15 @@ Channel links use the verified channel ID so they remain valid when the handle c
 - `dist/style.css` — responsive brand and video layouts
 - `dist/app.js` — topic selection and accessible mobile navigation
 - `dist/videos.js` — search, filters, lazy player, previous/next and playback cleanup
-- `dist/video-catalog.js` — verified public video IDs and titles
+- `dist/video-catalog.js` — allowed fallback videos
+- `dist/video-policy.js` — exclusions shared by client and server
+- `api/videos.js`, `lib/youtube.js` — live YouTube listing endpoint
+- `vercel.json` — static output and function deployment
+- `scripts/dev-server.js` — local static/API preview
 - `dist/assets/` — channel logo and banner
 - `.openai/hosting.json` — retained Sites hosting configuration
 
-The GitHub repository is connected to the existing Vercel deployment. Its static output directory remains `dist`; no server, API key, new hosting configuration or account is required.
+The GitHub repository is connected to the existing Vercel deployment. Its static output directory remains `dist`; `vercel.json` also deploys the Node.js function in `api/`. No API key or new account is required.
 
 ## Social profiles
 
