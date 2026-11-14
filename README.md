@@ -22,7 +22,7 @@ Open http://127.0.0.1:5173. This serves both the static page and `/api/videos`.
 
 `dist/video-catalog.js` is an offline fallback, not the primary live source. Four allowed public uploads are retained there.
 
-Videos open directly on YouTube in a new tab; no embedded player, iframe, or on-site playback is created. Native links support keyboard, modified clicks and the browser's standard new-tab controls. The initial optional follow invitation appears once per tab visit using sessionStorage, including across reloads; displaying or dismissing it counts as seen. When storage is unavailable, an in-memory flag still avoids repeats on the open page. A new browser tab/session can receive a fresh invitation.
+Videos open directly on YouTube (app handoff on supported mobile browsers, new tab on desktop); no embedded player, iframe, or on-site playback is created. Native links support keyboard, modified clicks and the browser's standard new-tab controls. The initial optional follow invitation appears once per tab visit using sessionStorage, including across reloads; displaying or dismissing it counts as seen. When storage is unavailable, an in-memory flag still avoids repeats on the open page. A new browser tab/session can receive a fresh invitation.
 
 Subscribe opens the channel's subscription confirmation URL; Facebook/TikTok Follow buttons open the supplied official profiles. These remain optional, with an immediate YouTube watch link in the invitation.
 
@@ -54,4 +54,10 @@ The GitHub repository is connected to the existing Vercel deployment. Its static
 
 ## Optional follow invitation
 
-Choosing a featured video or library item first opens the invitation once per visit. “এখনই ভিডিও দেখুন” links directly to the selected YouTube video or Shorts. No waiting period, social action or subscription verification is required. Later video selections open YouTube directly. The close button, Escape and backdrop dismiss the invitation and restore focus.
+Choosing a featured video or library item first opens the invitation once per visit. “এখনই ভিডিও দেখুন” links directly to the selected YouTube video or Shorts, with mobile app handoff when supported. No waiting period, social action or subscription verification is required. Later video selections open YouTube directly. The close button, Escape and backdrop dismiss the invitation and restore focus.
+
+## Mobile app handoff
+
+`dist/youtube-links.js` configures featured, library and invitation watch links consistently. Android Chromium browsers use a user-tapped HTTPS intent targeting `com.google.android.youtube`, with an encoded HTTPS browser fallback. iPhone/iPad use normal YouTube HTTPS Universal Links in the same browsing context; other Android browsers and embedded webviews also use HTTPS. Desktop links keep their new-tab behavior. No timed redirects, app-install detection, or autoplay are used. App opening depends on the installed app, OS link preferences and browser support and cannot be forced by the website.
+
+Routing tests cover Android intent and fallback URLs for videos and Shorts, iPhone/iPad Universal Links, embedded browsers, desktop behavior, and malformed video IDs. Actual native app launch needs testing on a physical phone.

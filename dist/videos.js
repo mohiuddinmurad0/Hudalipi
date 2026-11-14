@@ -1,5 +1,6 @@
 import { videos } from './video-catalog.js';
 import { allowedVideo } from './video-policy.js';
+import { configureYouTubeLink } from './youtube-links.js';
 
 const grid = document.getElementById('video-grid');
 const status = document.getElementById('video-status');
@@ -14,10 +15,6 @@ function markPromptSeen() {
   promptSeen = true;
   try { sessionStorage.setItem(visitKey, '1'); } catch { /* Keep this visit usable without storage. */ }
 }
-function videoUrl(video) {
-  return video.format === 'short' ? `https://www.youtube.com/shorts/${video.id}` : `https://www.youtube.com/watch?v=${video.id}`;
-}
-
 // Use the same official subscription/profile links as the site's follow section.
 const followLinks = [...document.querySelectorAll('.social-actions a')].map(link => {
   const copy = link.cloneNode(true);
@@ -45,11 +42,9 @@ function render() {
     const article = document.createElement('article');
     const button = document.createElement('a');
     button.className = 'video-card';
-    button.href = videoUrl(video);
-    button.target = '_blank';
-    button.rel = 'noopener noreferrer';
+    configureYouTubeLink(button, video);
     button.dataset.play = video.id;
-    button.setAttribute('aria-label', `${video.title} — YouTube-এ নতুন ট্যাবে দেখুন`);
+    button.setAttribute('aria-label', `${video.title} — YouTube-এ দেখুন`);
     const media = document.createElement('span');
     media.className = `video-thumbnail ${video.format === 'short' ? 'is-short' : ''}`;
     const image = document.createElement('img');
@@ -102,7 +97,7 @@ function showInvitation(video) {
   lastFocused = document.activeElement;
   document.getElementById('prewatch-video-title').textContent = video.title;
   document.getElementById('prewatch-thumbnail').src = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
-  document.getElementById('watch-now').href = videoUrl(video);
+  configureYouTubeLink(document.getElementById('watch-now'), video);
   dialog.showModal();
   markPromptSeen(); // Count displaying it, including dismissal, as this visit's one invitation.
   document.body.classList.add('player-open');
@@ -136,6 +131,11 @@ dialog.addEventListener('close', () => {
   document.body.classList.remove('player-open');
   if (lastFocused?.isConnected) lastFocused.focus({preventScroll:true});
 });
+// Upgrade the static featured links as well as dynamically rendered cards.
+for (const link of document.querySelectorAll('a[data-play]')) {
+  const video = validVideos.find(item => item.id === link.dataset.play);
+  if (video) configureYouTubeLink(link, video);
+}
 render();
 
 
