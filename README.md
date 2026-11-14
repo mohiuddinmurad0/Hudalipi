@@ -69,3 +69,7 @@ The live endpoint compares the newest public Videos and Shorts candidates using 
 ## Newest-first library order
 
 Both the endpoint and browser sort all allowed catalog items by their actual YouTube publication timestamps, newest first, across normal videos and Shorts. Format filters and search preserve that order. Metadata requests run with a six-request concurrency limit and a shared twelve-second deadline. Saved dates are used during temporary upstream failures; undated items retain stable order after dated items. The offline catalog is also stored with verified publication timestamps and sorted newest first.
+
+## Video batches
+
+The library starts with six matching videos. “আরও ভিডিও দেখুন” reveals the next six in the existing newest-first order. Search and format filters always query the full catalog and reset the visible batch to six. Background refreshes preserve the expanded limit. The button disappears when all matching videos are visible; it is not shown for lists of six or fewer. A count announces progress, and keyboard focus moves to the first newly shown video.

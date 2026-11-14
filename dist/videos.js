@@ -6,6 +6,10 @@ const grid = document.getElementById('video-grid');
 const status = document.getElementById('video-status');
 const search = document.getElementById('video-search');
 const empty = document.getElementById('video-empty');
+const moreControls = document.getElementById('video-more');
+const loadMore = document.getElementById('load-more-videos');
+const pageSize = 6;
+let visibleLimit = pageSize;
 const dialog = document.getElementById('video-dialog');
 let lastFocused;
 const visitKey = 'hudalipi.followPromptSeen';
@@ -54,13 +58,14 @@ function searchable(value) {
   return value.normalize('NFKC').toLocaleLowerCase().replace(/[\u200c\u200d]/g, '').replace(/[^\p{L}\p{N}]/gu, '');
 }
 
-function render() {
+function render({ focusNew = false } = {}) {
+  const previouslyShown = grid.children.length;
   const query = searchable(search.value.trim());
   visibleVideos = validVideos.filter(video =>
     (activeFilter === 'all' || video.format === activeFilter) &&
     (!query || searchable(video.title).includes(query))
   );
-  const cards = visibleVideos.map(video => {
+  const cards = visibleVideos.slice(0, visibleLimit).map(video => {
     const article = document.createElement('article');
     const button = document.createElement('a');
     button.className = 'video-card';
@@ -102,11 +107,16 @@ function render() {
   });
   grid.replaceChildren(...cards);
   empty.hidden = cards.length !== 0;
-  status.textContent = `${bnNumber.format(cards.length)}টি ভিডিও${query ? ' পাওয়া গেছে' : ' · নতুন থেকে পুরোনো'}`;
+  status.textContent = `${bnNumber.format(visibleVideos.length)}টি ভিডিও${query ? ' পাওয়া গেছে' : ' · নতুন থেকে পুরোনো'}`;
+  moreControls.hidden = visibleVideos.length <= pageSize;
+  loadMore.hidden = cards.length >= visibleVideos.length;
+  document.getElementById('video-progress').textContent = `${bnNumber.format(visibleVideos.length)}টির মধ্যে ${bnNumber.format(cards.length)}টি দেখানো হচ্ছে`;
+  if (focusNew) grid.children[previouslyShown]?.querySelector('a')?.focus({preventScroll:true});
 }
 
 function setFilter(value) {
   activeFilter = value;
+  visibleLimit = pageSize;
   filters.forEach(button => {
     const selected = button.dataset.filter === value;
     button.classList.toggle('active', selected);
@@ -128,7 +138,14 @@ function showInvitation(video) {
 document.getElementById('watch-now').addEventListener('click', () => dialog.close());
 
 filters.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
-search.addEventListener('input', render);
+search.addEventListener('input', () => {
+  visibleLimit = pageSize;
+  render();
+});
+loadMore.addEventListener('click', () => {
+  visibleLimit += pageSize;
+  render({focusNew:true});
+});
 document.getElementById('reset-videos').addEventListener('click', () => {
   search.value = '';
   setFilter('all');
