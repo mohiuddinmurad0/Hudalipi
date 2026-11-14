@@ -61,3 +61,7 @@ Choosing a featured video or library item first opens the invitation once per vi
 `dist/youtube-links.js` configures featured, library and invitation watch links consistently. Android Chromium browsers use a user-tapped HTTPS intent targeting `com.google.android.youtube`, with an encoded HTTPS browser fallback. iPhone/iPad use normal YouTube HTTPS Universal Links in the same browsing context; other Android browsers and embedded webviews also use HTTPS. Desktop links keep their new-tab behavior. No timed redirects, app-install detection, or autoplay are used. App opening depends on the installed app, OS link preferences and browser support and cannot be forced by the website.
 
 Routing tests cover Android intent and fallback URLs for videos and Shorts, iPhone/iPad Universal Links, embedded browsers, desktop behavior, and malformed video IDs. Actual native app launch needs testing on a physical phone.
+
+## Latest upload in the hero
+
+The live endpoint compares the newest public Videos and Shorts candidates using their actual YouTube `publishDate` timestamps, validates the source channel and video IDs, and returns `featuredVideoId`. The hero updates its image, title, format/duration, publication date and app-aware watch links whenever that response refreshes. Excluded videos cannot become featured. Unknown publication dates do not cause a guessed cross-format ranking; the last verified fallback stays visible. Publication-date requests have bounded timeouts and share the endpoint's five-minute cache.

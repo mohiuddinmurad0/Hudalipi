@@ -76,3 +76,7 @@ header{position:sticky;top:0;z-index:30;background:#f7f5edf5;backdrop-filter:blu
 .prewatch-note{margin:11px 0 0;color:var(--muted);font-size:11px;line-height:1.7}
 @media(max-width:700px){.video-dialog.is-prewatch{border-radius:15px;max-height:94dvh}.prewatch-prompt{padding:20px 23px 18px}.prewatch-brand{margin-bottom:14px}.prewatch-prompt h2{font-size:29px}.prewatch-description{font-size:14px;margin-bottom:17px}.prewatch-note{font-size:10px}}
 @media(max-height:750px){.prewatch-prompt{padding-block:17px}.prewatch-brand{margin-bottom:10px}.prewatch-brand img{width:42px;height:42px}.prewatch-prompt h2{font-size:28px;margin-block:7px}.prewatch-description{margin-bottom:14px}.prewatch-selection{padding-block:12px}}
+
+/* Latest uploads can be landscape videos or vertical Shorts. */
+.feature-play.is-short>img{object-fit:contain}.feature-play.is-short{background:#062a1e}
+.feature-copy h2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

@@ -4,10 +4,12 @@ export const videos = [
     "id": "2vePBCwxYo8",
     "title": "সূরা আল-মুলক সম্পূর্ণ | আরবি ও বাংলা অর্থসহ | Surah Al-Mulk | Hudalipi",
     "format": "video",
-    "duration": "8:21"
+    "duration": "8:21",
+    "publishedAt": "2026-11-13T16:43:19Z"
   },
   {
     "id": "EzDW_gOlnCc",
+    "publishedAt": "2026-11-14T04:19:17Z",
     "title": "সূরা আল-কাফিরূন সম্পূর্ণ | আরবি ও বাংলা অর্থসহ | Surah Al-Kafirun | Hudalipi",
     "format": "short",
     "duration": ""

@@ -48,3 +48,29 @@ test('API rejects mutation methods',async()=>{
   const response={setHeader:(k,v)=>headers[k]=v,status(code){status=code;return this;},json(data){return data;}};
   await handler({method:'POST'},response);assert.equal(status,405);assert.equal(headers.Allow,'GET, HEAD');
 });
+
+test('Hero picks a newer Short over a landscape video using publication timestamps', async()=>{
+ const result=await loadChannelVideos(async url=>{
+  if(url.includes('/watch?')){
+   const id=new URL(url).searchParams.get('v');
+   const date=id==='NEWshort123'?'2026-11-14T10:00:00Z':'2026-11-13T20:00:00Z';
+   return {ok:true,text:async()=>'<script>var ytInitialPlayerResponse = '+JSON.stringify({videoDetails:{videoId:id,channelId},microformat:{playerMicroformatRenderer:{publishDate:date}}})+';</script>'};
+  }
+  return {ok:true,text:async()=>url.includes('/shorts')?page([short('NEWshort123','New Short')]):page([upload('NEWvideo123','New video'),upload('SZ15Bb2leLo','Excluded')])};
+ });
+ assert.equal(result.featuredVideoId,'NEWshort123');
+ assert.equal(result.videos.find(v=>v.id==='NEWshort123').publishedAt,'2026-11-14T10:00:00.000Z');
+ assert(!result.videos.some(v=>v.id==='SZ15Bb2leLo'));
+});
+
+test('Hero chooses a newer landscape upload and does not guess when dates are unavailable',async()=>{
+ const {featureLatest}=await import('../lib/youtube.js');
+ const candidates=[{id:'NEWvideo123',title:'Video',format:'video'},{id:'NEWshort123',title:'Short',format:'short'}];
+ const dated=await featureLatest(candidates,async url=>{
+  const id=new URL(url).searchParams.get('v');
+  return {ok:true,text:async()=>'<script>var ytInitialPlayerResponse = '+JSON.stringify({videoDetails:{videoId:id,channelId},microformat:{playerMicroformatRenderer:{publishDate:id==='NEWvideo123'?'2026-11-15T00:00:00Z':'2026-11-14T00:00:00Z'}}})+';</script>'};
+ });
+ assert.equal(dated.featuredVideoId,'NEWvideo123');
+ const unknown=await featureLatest(candidates,async()=>{throw new Error('Unavailable');});
+ assert.equal(unknown.featuredVideoId,null);
+});

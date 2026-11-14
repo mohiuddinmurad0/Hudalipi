@@ -1,5 +1,5 @@
 import { videos } from './video-catalog.js';
-import { allowedVideo } from './video-policy.js';
+import { allowedVideo, latestPublishedVideo } from './video-policy.js';
 import { configureYouTubeLink } from './youtube-links.js';
 
 const grid = document.getElementById('video-grid');
@@ -27,6 +27,28 @@ const bnNumber = new Intl.NumberFormat('bn-BD');
 let validVideos = videos.filter(allowedVideo);
 let activeFilter = 'all';
 let visibleVideos = validVideos;
+
+function updateHero(video) {
+  if (!video || !allowedVideo(video)) return;
+  const feature = document.querySelector('.hero-feature');
+  const image = feature.querySelector('.feature-play img');
+  image.src = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
+  image.alt = `${video.title} — থাম্বনেইল`;
+  feature.querySelector('.feature-heading').innerHTML = '<span class="feature-dot" aria-hidden="true"></span> সর্বশেষ প্রকাশিত <span>NEW UPLOAD</span>';
+  feature.querySelector('.feature-copy h2').textContent = video.title.split('|')[0].trim();
+  feature.querySelector('.feature-copy > span').textContent = video.format === 'short' ? 'SHORTS · নতুন ভিডিও' : 'নতুন ভিডিও';
+  const published = video.publishedAt;
+  feature.querySelector('.feature-copy p').textContent = Number.isFinite(Date.parse(published))
+    ? `প্রকাশিত: ${new Intl.DateTimeFormat('bn-BD', {day:'numeric', month:'long', year:'numeric', timeZone:'Asia/Dhaka'}).format(new Date(published))}`
+    : 'সর্বশেষ ভিডিওটি YouTube-এ দেখুন।';
+  feature.querySelector('.feature-duration').textContent = video.format === 'short' ? 'Shorts' : (video.duration || 'ভিডিও');
+  feature.querySelector('.feature-play').classList.toggle('is-short', video.format === 'short');
+  for (const link of feature.querySelectorAll('a[data-play]')) {
+    link.dataset.play = video.id;
+    link.setAttribute('aria-label', `${video.title} — YouTube-এ দেখুন`);
+    configureYouTubeLink(link, video);
+  }
+}
 
 function searchable(value) {
   return value.normalize('NFKC').toLocaleLowerCase().replace(/[\u200c\u200d]/g, '').replace(/[^\p{L}\p{N}]/gu, '');
@@ -137,6 +159,7 @@ for (const link of document.querySelectorAll('a[data-play]')) {
   if (video) configureYouTubeLink(link, video);
 }
 render();
+updateHero(latestPublishedVideo(validVideos));
 
 
 // Vercel caches the public channel response for five minutes. The local catalog
@@ -149,11 +172,12 @@ async function refreshVideos() {
   lastAttempt = Date.now();
   const syncStatus = document.getElementById('video-sync-status');
   try {
-    const response = await fetch('/api/videos', {signal: AbortSignal.timeout(12000)});
+    const response = await fetch('/api/videos', {signal: AbortSignal.timeout(22000)});
     if (!response.ok) throw new Error('Unavailable');
     const data = await response.json();
     if (!Array.isArray(data.videos)) throw new Error('Invalid catalog');
     validVideos = data.videos.filter(allowedVideo);
+    updateHero(validVideos.find(video => video.id === data.featuredVideoId));
     render();
     syncStatus.textContent = data.source === 'youtube' ? 'YouTube থেকে স্বয়ংক্রিয়ভাবে আপডেট হচ্ছে' :
       data.source === 'partial' ? 'ভিডিও তালিকা আপডেট হচ্ছে' : 'সংরক্ষিত ভিডিও · আরও ভিডিও YouTube-এ';
